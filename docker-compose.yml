@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mail-to-telegram:
     build: .
@@ -9,3 +11,9 @@ services:
       - "25:25"
     volumes:
       - ./data:/app/data
+    networks:
+      - web_network
+
+networks:
+  web_network:
+    external: true
