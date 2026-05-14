@@ -1,0 +1,11 @@
+services:
+  mail-to-telegram:
+    build: .
+    container_name: mail-to-telegram
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "25:25"
+    volumes:
+      - ./data:/app/data
