@@ -10,6 +10,10 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 25);
 const WEB_PORT = Number(process.env.WEB_PORT || 3000);
 
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL;
+const ALLOWED_RECIPIENTS = (process.env.ALLOWED_RECIPIENTS || "")
+  .split(",")
+  .map(v => v.trim().toLowerCase())
+  .filter(Boolean);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -33,6 +37,22 @@ function safeHtml(mail) {
   <pre>${escapeHtml(text)}</pre>
 </body>
 </html>`;
+}
+
+function isRecipientAllowed(email) {
+  const value = email.toLowerCase();
+
+  if (ALLOWED_RECIPIENTS.length === 0) {
+    return true;
+  }
+
+  return ALLOWED_RECIPIENTS.some(rule => {
+    if (rule.startsWith("@")) {
+      return value.endsWith(rule);
+    }
+
+    return value === rule;
+  });
 }
 
 function escapeHtml(str) {
@@ -67,9 +87,18 @@ const smtpServer = new SMTPServer({
   disabledCommands: ["AUTH"],
 
   onRcptTo(address, session, callback) {
-    // Nhận mọi email
-    callback();
-  },
+  const recipient = address.address.toLowerCase();
+
+  if (!isRecipientAllowed(recipient)) {
+    console.log("Rejected recipient:", recipient);
+
+    return callback(
+      new Error(`Recipient ${recipient} is not allowed`)
+    );
+  }
+
+  callback();
+},
 
   async onData(stream, session, callback) {
     try {
